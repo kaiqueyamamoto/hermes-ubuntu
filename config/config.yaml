@@ -1,0 +1,14 @@
+# Config padrão do Hermes dentro do container (copiada no primeiro start).
+# Depois disso vive no volume hermes-data; edite com `hermes config set` ou `hermes setup`.
+model:
+  provider: auto
+terminal:
+  # Comandos do agente rodam direto no container, como root.
+  backend: local
+  cwd: /workspace
+  timeout: 600
+browser:
+  headed: false
+  inactivity_timeout: 120
+agent:
+  max_turns: 200

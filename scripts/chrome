@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# Abre o navegador disponível na imagem: Google Chrome (amd64) ou
+# Chromium do Playwright (arm64). Roda como root, então precisa de --no-sandbox.
+set -euo pipefail
+
+resolve_browser() {
+    if [ -n "${AGENT_BROWSER_EXECUTABLE_PATH:-}" ] && [ -x "$AGENT_BROWSER_EXECUTABLE_PATH" ]; then
+        echo "$AGENT_BROWSER_EXECUTABLE_PATH"; return
+    fi
+    if command -v google-chrome-stable >/dev/null 2>&1; then
+        command -v google-chrome-stable; return
+    fi
+    local pw
+    pw="$(ls -d /root/.cache/ms-playwright/chromium-*/chrome-linux*/chrome 2>/dev/null | sort -V | tail -n1 || true)"
+    if [ -n "$pw" ] && [ -x "$pw" ]; then
+        echo "$pw"; return
+    fi
+    echo "chrome: nenhum Chrome/Chromium encontrado" >&2
+    exit 1
+}
+
+if [ "${1:-}" = "--path" ]; then
+    resolve_browser
+    exit 0
+fi
+
+exec "$(resolve_browser)" --no-sandbox --disable-dev-shm-usage "$@"

@@ -1,0 +1,29 @@
+name: ubuntu-hermes
+
+
+services:
+  hermes:
+    build: .
+    image: ubuntu-hermes:latest
+    container_name: ubuntu-hermes
+    hostname: hermes
+    user: root
+    restart: unless-stopped
+    # Painel web do Hermes sobe no boot (CMD da imagem). Publicado só no
+    # loopback do host; para expor na rede troque para "9119:9119".
+    ports:
+      - "127.0.0.1:${HERMES_DASHBOARD_PORT:-9119}:9119"
+    stdin_open: true
+    tty: true
+    # Chrome usa /dev/shm; o padrão de 64MB derruba abas.
+    shm_size: 2gb
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - hermes-data:/root/.hermes
+      - ./workspace:/workspace
+    # Sem privileged e sem /var/run/docker.sock: root vale só dentro do container.
+
+volumes:
+  hermes-data:
