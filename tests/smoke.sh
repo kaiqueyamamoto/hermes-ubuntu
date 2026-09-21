@@ -129,6 +129,18 @@ if [ $# -gt 0 ]; then
     [ "$FAIL" -eq 0 ]; exit
 fi
 
+tailscale_installed() { tailscale version >/dev/null && command -v tailscaled >/dev/null; }
+
+tailscale_state() {
+    # Sem TS_AUTHKEY: não sobe e não pode atrapalhar o boot.
+    # Com TS_AUTHKEY: precisa estar conectado na tailnet.
+    if [ -z "${TS_AUTHKEY:-}" ]; then
+        ! pgrep -x tailscaled >/dev/null || { echo "tailscaled rodando sem TS_AUTHKEY"; return 1; }
+        return 0
+    fi
+    [ "$(tailscale status --json | jq -r .BackendState)" = "Running" ]
+}
+
 check "roda como root"                          is_root
 check "apt-get update"                          apt_update
 check "apt-get install (cowsay)"                apt_install
@@ -142,6 +154,8 @@ check "Playwright Python (headless)"            playwright_python
 check "Playwright Python headed via xvfb-run"   playwright_python_headed_xvfb
 check "Playwright Node"                         playwright_node
 check "Playwright Python e Node mesma versão"   playwright_same_version
+check "Tailscale instalado"                     tailscale_installed
+check "Tailscale conforme TS_AUTHKEY"           tailscale_state
 check "hermes CLI instalado"                    hermes_cli
 check "HERMES_HOME gravável"                    hermes_home_writable
 check "terminal do Hermes em modo local"        hermes_terminal_local

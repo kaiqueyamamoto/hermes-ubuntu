@@ -44,6 +44,15 @@ RUN if [ "$TARGETARCH" = "amd64" ]; then \
         && apt-get update && apt-get install -y --no-install-recommends google-chrome-stable; \
     fi
 
+# Tailscale (repo oficial). Sobe no boot em modo userspace quando TS_AUTHKEY
+# está definido: o container aparece na tailnet sem precisar de NET_ADMIN.
+RUN curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/noble.noarmor.gpg \
+        -o /usr/share/keyrings/tailscale-archive-keyring.gpg \
+    && curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/noble.tailscale-keyring.list \
+        -o /etc/apt/sources.list.d/tailscale.list \
+    && apt-get update && apt-get install -y --no-install-recommends tailscale \
+    && tailscale version
+
 # Hermes Agent (modo root: código em /usr/local/lib/hermes-agent,
 # comando em /usr/local/bin/hermes, dados em $HERMES_HOME).
 # --with-deps do Playwright instala as libs de sistema do Chromium.
@@ -72,13 +81,14 @@ RUN cd /usr/local/lib/hermes-agent \
 COPY scripts/chrome /usr/local/bin/chrome
 COPY scripts/entrypoint.sh /usr/local/bin/hermes-entrypoint
 COPY scripts/dashboard.sh /usr/local/bin/hermes-dashboard
+COPY scripts/tailscale.sh /usr/local/bin/hermes-tailscale
 COPY config/config.yaml /opt/hermes-defaults/config.yaml
 COPY tests /opt/hermes-tests
 COPY examples /opt/hermes-examples
 
 # Snapshot do HERMES_HOME da imagem. O volume persistente é montado por cima
 # de /root/.hermes; o entrypoint semeia o volume e atualiza node/ e bin/.
-RUN chmod +x /usr/local/bin/chrome /usr/local/bin/hermes-entrypoint /usr/local/bin/hermes-dashboard /opt/hermes-tests/*.sh \
+RUN chmod +x /usr/local/bin/chrome /usr/local/bin/hermes-entrypoint /usr/local/bin/hermes-dashboard /usr/local/bin/hermes-tailscale /opt/hermes-tests/*.sh \
     && ln -s "$(chrome --path)" /usr/local/bin/chrome-bin \
     && cp -a /root/.hermes /opt/hermes-seed
 

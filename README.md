@@ -21,6 +21,16 @@ node /opt/hermes-examples/playwright_exemplo.mjs https://example.com
 
 Em Node, `require("playwright")` funciona de qualquer pasta (`NODE_PATH`). Em ESM, use `createRequire`, como no exemplo.
 
+## Tailscale + Hermes Desktop
+
+Com `TS_AUTHKEY` definido, o container entra na sua tailnet assim que inicia, com o nome `TS_HOSTNAME` (padrão `hermes`). O Tailscale roda em modo userspace, então não precisa de `--cap-add NET_ADMIN` nem de `/dev/net/tun`. O estado fica no volume, e o container mantém a mesma máquina na tailnet depois de reiniciar.
+
+1. Gere uma auth key **reutilizável e não efêmera** em https://login.tailscale.com/admin/settings/keys e coloque em `TS_AUTHKEY`.
+2. Suba o container: nos logs aparece `[tailscale] conectado: 100.x.y.z (hermes)`.
+3. No Hermes Desktop, em **Settings → Gateways → Remote gateway**, use a URL `http://hermes:9119`, entre com o usuário e a senha do painel e salve.
+
+O painel web também fica acessível pela tailnet em `http://hermes:9119`. Com `TS_SERVE=true` (e HTTPS habilitado na tailnet), há também `https://hermes.<tailnet>.ts.net`. Se a chave falhar, o erro vai para o log e o painel sobe do mesmo jeito.
+
 ## Só o Dockerfile
 
 A imagem não depende do compose: tudo que ela precisa está no Dockerfile.
@@ -28,7 +38,7 @@ A imagem não depende do compose: tudo que ela precisa está no Dockerfile.
 ```bash
 docker build -t hermes-ubuntu .
 docker run -d --name hermes -p 127.0.0.1:9119:9119 -v hermes-data:/root/.hermes \
-  -e OPENROUTER_API_KEY=... hermes-ubuntu
+  -e OPENROUTER_API_KEY=... -e TS_AUTHKEY=tskey-auth-... hermes-ubuntu
 docker exec hermes cat /root/.hermes/dashboard-password
 ```
 

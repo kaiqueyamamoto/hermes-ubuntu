@@ -23,4 +23,7 @@ if [ ! -f "$HERMES_HOME/.container-initialized" ]; then
     touch "$HERMES_HOME/.container-initialized"
 fi
 
+# Tailscale antes do comando principal: quando o painel sobe, a tailnet já está pronta.
+hermes-tailscale || true
+
 exec "$@"
