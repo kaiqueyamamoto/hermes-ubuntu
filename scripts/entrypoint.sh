@@ -23,6 +23,11 @@ if [ ! -f "$HERMES_HOME/.container-initialized" ]; then
     touch "$HERMES_HOME/.container-initialized"
 fi
 
+# Atualiza o config.yaml para o schema da versão atual do Hermes (idempotente;
+# cobre tanto o primeiro boot quanto rebuilds com Hermes mais novo).
+hermes config migrate </dev/null >/dev/null 2>&1 || echo "[entrypoint] aviso: hermes config migrate falhou"
+mkdir -p "$HERMES_LAZY_INSTALL_TARGET" 2>/dev/null || true
+
 # Tailscale antes do comando principal: quando o painel sobe, a tailnet já está pronta.
 hermes-tailscale || true
 

@@ -21,6 +21,30 @@ node /opt/hermes-examples/playwright_exemplo.mjs https://example.com
 
 Em Node, `require("playwright")` funciona de qualquer pasta (`NODE_PATH`). Em ESM, use `createRequire`, como no exemplo.
 
+## O que vem instalado
+
+Os extras são os mesmos da imagem oficial do Hermes, mais o que as skills incluídas precisam:
+
+| Área | Conteúdo |
+|------|----------|
+| Hermes (extras Python) | mensageria (Telegram, Discord, Slack, Matrix, Google Chat), provedores (Anthropic, Bedrock, Azure), Google Workspace, voz (faster-whisper STT local, edge-tts), OTLP, Hindsight |
+| Sistema | SQLite 3.53.4 compilado (o 3.45.1 do Ubuntu tem o bug de WAL-reset), ffmpeg, ripgrep, openssh-client, tmux, rsync, gh, libopus/portaudio |
+| Skills | himalaya (email), xurl (X), python-docx/openpyxl/python-pptx, pygount, youtube-transcript-api, Claude Code e Codex CLI |
+
+- Pacotes instalados sob demanda (lazy installs) ficam em `/root/.hermes/lazy-packages`, no volume, e sobrevivem a rebuilds.
+- `docker build --build-arg INSTALL_AGENT_CLIS=false` deixa de fora o Claude Code e o Codex (cerca de 540 MB a menos).
+
+**Fora da imagem, de propósito:**
+- `computer_use`: exige cua-driver, um desktop X/Xvfb e AT-SPI.
+- Backend de terminal `docker`: exigiria montar o socket do host.
+- Manim + LaTeX: vários GB.
+- songsee: requer o toolchain Go.
+- Skills da Apple: só funcionam no macOS.
+
+O agente é root e tem internet, então consegue instalar qualquer um desses quando precisar.
+
+**Chaves que liberam mais ferramentas** (`.env` ou `hermes setup`): provedor do modelo (também habilita vision e video), `FAL_KEY` (image_gen), `EXA_API_KEY`/`FIRECRAWL_API_KEY` (busca web), `XAI_API_KEY`, `HASS_TOKEN`, `GITHUB_TOKEN` (Skills Hub sem rate limit).
+
 ## Tailscale + Hermes Desktop
 
 Com `TS_AUTHKEY` definido, o container entra na sua tailnet assim que inicia, com o nome `TS_HOSTNAME` (padrão `hermes`). O Tailscale roda em modo userspace, então não precisa de `--cap-add NET_ADMIN` nem de `/dev/net/tun`. O estado fica no volume, e o container mantém a mesma máquina na tailnet depois de reiniciar.

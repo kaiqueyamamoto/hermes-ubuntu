@@ -141,6 +141,54 @@ tailscale_state() {
     [ "$(tailscale status --json | jq -r .BackendState)" = "Running" ]
 }
 
+HERMES_PY=/usr/local/lib/hermes-agent/venv/bin/python
+
+sqlite_sem_bug_wal() {
+    # Bug de WAL-reset corrigido em 3.51.3+ (Ubuntu 24.04 traz 3.45.1).
+    for py in python3 "$HERMES_PY"; do
+        "$py" -c 'import sqlite3,sys; v=tuple(map(int,sqlite3.sqlite_version.split("."))); print(v); sys.exit(v < (3,51,3))' \
+            || { echo "$py usa SQLite antigo"; return 1; }
+    done
+}
+
+hermes_extras() {
+    "$HERMES_PY" -c 'import telegram, discord, slack_bolt, anthropic, faster_whisper, mautrix, googleapiclient, edge_tts'
+}
+
+skills_python_libs() {
+    python3 -c 'import docx, openpyxl, pptx, pygount, youtube_transcript_api'
+}
+
+skills_clis() {
+    local missing=""
+    local clis="gh himalaya xurl ssh sqlite3 tmux rg ffmpeg"
+    [ -d /usr/local/lib/node_modules/@openai/codex ] || [ -d /usr/local/lib/node_modules/@anthropic-ai/claude-code ] \
+        && clis="$clis claude codex"
+    for c in $clis; do
+        command -v "$c" >/dev/null || missing="$missing $c"
+    done
+    [ -z "$missing" ] || { echo "faltando:$missing"; return 1; }
+}
+
+hermes_config_atualizada() {
+    local v
+    v="$(grep -E '^_config_version:' "$HERMES_HOME/config.yaml" | awk '{print $2}')"
+    [ -n "$v" ] && [ "$v" -gt 0 ] || { echo "_config_version=$v"; return 1; }
+}
+
+hermes_doctor_sem_erros() {
+    local out
+    out="$(timeout 240 hermes doctor 2>&1)"
+    if echo "$out" | grep -q '✗'; then
+        echo "$out" | grep '✗'
+        return 1
+    fi
+}
+
+lazy_installs_no_volume() {
+    [ "$HERMES_LAZY_INSTALL_TARGET" = "$HERMES_HOME/lazy-packages" ] && [ -d "$HERMES_LAZY_INSTALL_TARGET" ]
+}
+
 check "roda como root"                          is_root
 check "apt-get update"                          apt_update
 check "apt-get install (cowsay)"                apt_install
@@ -157,6 +205,13 @@ check "Playwright Python e Node mesma versão"   playwright_same_version
 check "Tailscale instalado"                     tailscale_installed
 check "Tailscale conforme TS_AUTHKEY"           tailscale_state
 check "hermes CLI instalado"                    hermes_cli
+check "SQLite sem bug de WAL-reset"             sqlite_sem_bug_wal
+check "extras do Hermes (mensageria, voz...)"   hermes_extras
+check "libs Python das skills"                  skills_python_libs
+check "CLIs das skills e ferramentas"           skills_clis
+check "config.yaml no schema atual"             hermes_config_atualizada
+check "lazy installs persistem no volume"       lazy_installs_no_volume
+check "hermes doctor sem erros"                 hermes_doctor_sem_erros
 check "HERMES_HOME gravável"                    hermes_home_writable
 check "terminal do Hermes em modo local"        hermes_terminal_local
 check "browser do Hermes aponta pro Chrome"     hermes_browser_points_to_chrome
