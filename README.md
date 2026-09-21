@@ -9,6 +9,29 @@ Dentro do container o agente pode:
 - acessar a internet normalmente
 - controlar um navegador: Google Chrome no amd64, Chromium do Playwright no arm64 (Apple Silicon). O Google Chrome não tem build para Linux arm64.
 
+## Playwright e scripts
+
+O Playwright vem pronto em **Python** e em **Node**, na mesma versão do Playwright interno do Hermes, e os três usam o mesmo Chromium em `/ms-playwright`. Rodando como root, o Playwright já desliga o sandbox sozinho.
+
+```bash
+python3 /opt/hermes-examples/playwright_exemplo.py https://example.com
+xvfb-run -a python3 /opt/hermes-examples/playwright_exemplo.py --headed   # navegador "visível" num display virtual
+node /opt/hermes-examples/playwright_exemplo.mjs https://example.com
+```
+
+Em Node, `require("playwright")` funciona de qualquer pasta (`NODE_PATH`). Em ESM, use `createRequire`, como no exemplo.
+
+## Só o Dockerfile
+
+A imagem não depende do compose: tudo que ela precisa está no Dockerfile.
+
+```bash
+docker build -t hermes-ubuntu .
+docker run -d --name hermes -p 127.0.0.1:9119:9119 -v hermes-data:/root/.hermes \
+  -e OPENROUTER_API_KEY=... hermes-ubuntu
+docker exec hermes cat /root/.hermes/dashboard-password
+```
+
 ## Uso
 
 ```bash

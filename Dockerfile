@@ -14,6 +14,9 @@ ENV DEBIAN_FRONTEND=noninteractive \
     LC_ALL=C.UTF-8 \
     TZ=America/Sao_Paulo \
     HERMES_HOME=/root/.hermes \
+    PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
+    NODE_PATH=/usr/local/lib/node_modules \
+    PYTHONUNBUFFERED=1 \
     PATH=/root/.hermes/node/bin:/root/.hermes/bin:/root/.local/bin:$PATH
 
 # Pacotes base: Python completo (pip/venv), build tools e utilitários de rede.
@@ -22,7 +25,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         ca-certificates curl wget gnupg git xz-utils unzip \
         build-essential pkg-config \
         python3 python3-pip python3-venv python3-dev python-is-python3 \
-        sudo nano less procps tini tzdata \
+        sudo nano less procps tini tzdata jq \
+        xvfb xauth \
         iputils-ping dnsutils net-tools \
         fonts-liberation fonts-noto-color-emoji \
     && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
@@ -48,6 +52,17 @@ RUN curl -fsSL "$HERMES_INSTALL_URL" -o /tmp/hermes-install.sh \
     && rm -f /tmp/hermes-install.sh \
     && hermes --version
 
+# Playwright para scripts do usuário, em Python e Node, na MESMA versão do
+# Playwright do Hermes: todos usam o mesmo Chromium em $PLAYWRIGHT_BROWSERS_PATH.
+# O pip vem depois do npm para o comando `playwright` no PATH ser o do Python.
+RUN PW_VERSION="$(cd /usr/local/lib/hermes-agent && npx playwright --version | awk '{print $2}')" \
+    && echo "Playwright $PW_VERSION" \
+    && npm install -g --no-audit --no-fund "playwright@$PW_VERSION" \
+    && pip install --no-cache-dir "playwright==$PW_VERSION" \
+    && python3 -m playwright install --with-deps chromium \
+    && python3 -c "import playwright" \
+    && node -e "require('playwright')"
+
 # Painel web pré-compilado na imagem: o boot não depende de npm/rede.
 RUN cd /usr/local/lib/hermes-agent \
     && npm install --workspace web --no-audit --no-fund \
@@ -59,6 +74,7 @@ COPY scripts/entrypoint.sh /usr/local/bin/hermes-entrypoint
 COPY scripts/dashboard.sh /usr/local/bin/hermes-dashboard
 COPY config/config.yaml /opt/hermes-defaults/config.yaml
 COPY tests /opt/hermes-tests
+COPY examples /opt/hermes-examples
 
 # Snapshot do HERMES_HOME da imagem. O volume persistente é montado por cima
 # de /root/.hermes; o entrypoint semeia o volume e atualiza node/ e bin/.

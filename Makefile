@@ -7,7 +7,7 @@ build:    ## Constrói a imagem
 	$(COMPOSE) build
 
 up:       ## Sobe o container com o painel web (http://localhost:9119)
-	$(COMPOSE) up -d --wait
+	$(COMPOSE) up -d --build --wait
 
 down:     ## Para o container (mantém o volume de estado)
 	$(COMPOSE) down

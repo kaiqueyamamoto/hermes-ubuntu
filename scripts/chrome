@@ -11,7 +11,7 @@ resolve_browser() {
         command -v google-chrome-stable; return
     fi
     local pw
-    pw="$(ls -d /root/.cache/ms-playwright/chromium-*/chrome-linux*/chrome 2>/dev/null | sort -V | tail -n1 || true)"
+    pw="$(ls -d "${PLAYWRIGHT_BROWSERS_PATH:-/root/.cache/ms-playwright}"/chromium-*/chrome-linux*/chrome 2>/dev/null | sort -V | tail -n1 || true)"
     if [ -n "$pw" ] && [ -x "$pw" ]; then
         echo "$pw"; return
     fi

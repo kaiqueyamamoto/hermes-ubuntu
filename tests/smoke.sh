@@ -64,6 +64,26 @@ hermes_browser_driver() {
     echo "$title" | grep -q "Example Domain"
 }
 
+playwright_python() {
+    [ "$(python3 /opt/hermes-examples/playwright_exemplo.py https://example.com)" = "Example Domain" ]
+}
+
+playwright_python_headed_xvfb() {
+    [ "$(xvfb-run -a python3 /opt/hermes-examples/playwright_exemplo.py https://example.com --headed)" = "Example Domain" ]
+}
+
+playwright_node() {
+    cd "$TMP" || return 1
+    [ "$(node /opt/hermes-examples/playwright_exemplo.mjs https://example.com)" = "Example Domain" ]
+}
+
+playwright_same_version() {
+    local py node
+    py="$(python3 -c 'from importlib.metadata import version; print(version("playwright"))')"
+    node="$(node -p 'require("playwright/package.json").version')"
+    [ "$py" = "$node" ] || { echo "python=$py node=$node"; return 1; }
+}
+
 hermes_cli() { hermes --version; }
 
 hermes_home_writable() {
@@ -118,6 +138,10 @@ check "pip install no Python do sistema"        pip_system
 check "resolve DNS"                             dns_resolve
 check "acessa internet via HTTPS"               internet_https
 check "Chrome headless renderiza página"        chrome_headless
+check "Playwright Python (headless)"            playwright_python
+check "Playwright Python headed via xvfb-run"   playwright_python_headed_xvfb
+check "Playwright Node"                         playwright_node
+check "Playwright Python e Node mesma versão"   playwright_same_version
 check "hermes CLI instalado"                    hermes_cli
 check "HERMES_HOME gravável"                    hermes_home_writable
 check "terminal do Hermes em modo local"        hermes_terminal_local
